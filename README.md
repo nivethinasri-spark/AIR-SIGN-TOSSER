@@ -47,7 +47,3 @@ To create a touchless file transfer system using gesture recognition.
 * Better gesture recognition
 * Mobile app integration
 
-## 📷 Output (Optional)
-
-(Add screenshots or demo images here)
-
