@@ -1,30 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Air Tosser</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Device A</title>
 </head>
 <body>
 
-<h1>🖐 Air File Tosser</h1>
+<h2>Device A (Sender)</h2>
 
-<video id="video" autoplay></video>
+<button onclick="createOffer()">Create Offer</button><br><br>
 
-<br><br>
+<textarea id="offerBox" placeholder="Offer"></textarea><br><br>
 
-<input type="file" id="fileInput">
+<textarea id="answerBox" placeholder="Paste Answer"></textarea><br><br>
 
-<br><br>
+<button onclick="setAnswer()">Set Answer</button><br><br>
 
-<button onclick="createOffer()">Create Offer</button>
-<button onclick="joinOffer()">Join Offer</button>
+<input type="file" id="fileInput"><br><br>
 
-<br><br>
+<p id="status">Not connected</p>
 
-<textarea id="signalData" placeholder="Paste connection code here"></textarea>
+<!-- CAMERA -->
+<h3>Camera</h3>
+<video id="video" autoplay playsinline width="300"></video>
 
-<div id="status">Not connected</div>
-
+<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
