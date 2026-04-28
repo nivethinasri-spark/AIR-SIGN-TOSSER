@@ -1,91 +1,109 @@
-const video = document.getElementById("video");
-const statusText = document.getElementById("status");
-const fileInput = document.getElementById("fileInput");
-const signalData = document.getElementById("signalData");
-
-let selectedFile = null;
-let lastX = 0;
-
-// CAMERA
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => video.srcObject = stream);
-
-// FILE SELECT
-fileInput.addEventListener("change", () => {
-  selectedFile = fileInput.files[0];
-  statusText.innerText = "File selected: " + selectedFile.name;
+// ===== WEBRTC =====
+let peer = new RTCPeerConnection({
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-// WEBRTC
-let pc = new RTCPeerConnection();
-let dataChannel = pc.createDataChannel("fileChannel");
-
-dataChannel.onmessage = (event) => {
-  let blob = new Blob([event.data]);
-  let link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "received_file";
-  link.click();
-};
+let channel;
 
 async function createOffer() {
-  let offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  signalData.value = JSON.stringify(offer);
-}
+  channel = peer.createDataChannel("file");
 
-async function joinOffer() {
-  let offer = JSON.parse(signalData.value);
-  await pc.setRemoteDescription(offer);
-
-  let answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-
-  signalData.value = JSON.stringify(answer);
-}
-
-async function acceptAnswer() {
-  let answer = JSON.parse(signalData.value);
-  await pc.setRemoteDescription(answer);
-  statusText.innerText = "Connected";
-}
-
-function triggerSend() {
-  if (!selectedFile) return;
-
-  let reader = new FileReader();
-  reader.onload = () => {
-    dataChannel.send(reader.result);
+  channel.onopen = () => {
+    document.getElementById("status").innerText = "Connected ✅";
   };
-  reader.readAsArrayBuffer(selectedFile);
+
+  const offer = await peer.createOffer();
+  await peer.setLocalDescription(offer);
+
+  await waitIce();
+
+  document.getElementById("offerBox").value =
+    JSON.stringify(peer.localDescription);
 }
 
-// HAND TRACKING
-const hands = new Hands({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-});
+async function setAnswer() {
+  const answer = JSON.parse(document.getElementById("answerBox").value);
+  await peer.setRemoteDescription(answer);
+}
 
-hands.setOptions({
-  maxNumHands: 1,
-  minDetectionConfidence: 0.7
-});
+function sendFile() {
 
-hands.onResults(results => {
-  if (results.multiHandLandmarks.length > 0) {
-    let x = results.multiHandLandmarks[0][0].x;
+  if (!channel || channel.readyState !== "open") return;
 
-    if (x - lastX > 0.15) {
-      triggerSend();
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    channel.send(JSON.stringify({ name: file.name }));
+    channel.send(reader.result);
+  };
+
+  reader.readAsArrayBuffer(file);
+
+  console.log("FILE SENT");
+}
+
+function waitIce() {
+  return new Promise(resolve => {
+    if (peer.iceGatheringState === "complete") resolve();
+    else {
+      peer.onicegatheringstatechange = () => {
+        if (peer.iceGatheringState === "complete") resolve();
+      };
+    }
+  });
+}
+
+// ===== HAND GESTURE =====
+let sent = false;
+
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+
+  const video = document.getElementById("video");
+  video.srcObject = stream;
+
+  const hands = new Hands({
+    locateFile: f =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+  });
+
+  hands.setOptions({
+    maxNumHands: 1,
+    minDetectionConfidence: 0.7
+  });
+
+  hands.onResults(results => {
+
+    const hand =
+      results.multiHandLandmarks &&
+      results.multiHandLandmarks.length > 0;
+
+    if (hand && !sent) {
+
+      if (channel && channel.readyState === "open") {
+        sendFile();   // 🔥 AUTO SEND
+        sent = true;
+      }
+
     }
 
-    lastX = x;
-  }
-});
+    if (!hand) {
+      sent = false;
+    }
 
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await hands.send({ image: video });
-  }
+  });
+
+  const camera = new Camera(video, {
+    onFrame: async () => {
+      await hands.send({ image: video });
+    },
+    width: 300,
+    height: 200
+  });
+
+  camera.start();
+
 });
-camera.start();
