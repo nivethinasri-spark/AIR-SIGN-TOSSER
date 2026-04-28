@@ -27,13 +27,6 @@ To create a touchless file transfer system using gesture recognition.
 * JavaScript
 * MediaPipe (for hand tracking)
 
-## ▶️ How to Run
-
-1. Open the project link:
-   https://yourusername.github.io/AirSign-Taser/
-2. Allow camera access
-3. Select a file
-4. Perform gestures to trigger actions
 
 ## 🚀 Features
 
